@@ -1,10 +1,11 @@
 # nfdi-landscape
 
-There are 26 accepted consortia in the German National Research Data Infrastructure (NFDI).
-The following query to Wikidata gets information about each:
+There are 26 accepted consortia in the German National Research Data
+Infrastructure (NFDI). The following query to Wikidata gets information about
+each:
 
 ```sparql
-SELECT 
+SELECT
   ?consortium ?consortiumLabel ?ror ?inception ?logo ?chairperson ?chairpersonLabel
   ?website ?youtube ?nfdi4culture ?zenodo
 WHERE {
@@ -12,7 +13,7 @@ WHERE {
               wdt:P31 wd:Q98270496 .
   OPTIONAL { ?consortium wdt:P571 ?inception . }
   OPTIONAL { ?consortium wdt:P154 ?logo . }
-  OPTIONAL { 
+  OPTIONAL {
     ?consortium p:P488 ?statement.
     ?statement ps:P488 ?chairperson.
     # Filter: only current chairperson (no end date)
@@ -34,10 +35,12 @@ ORDER BY ?consortiumLabel
 
 ## Relations
 
-I've observed two kinds of relations on NFDI Wikidata pages so far: partnerships (P2652) and affiliations (P1416).
-Partnership relations appear to be unqualified, and affiliations are annotated with object roles. Here's a query
-over partnerships, which I've loosened from NFDI consortia to any parts of NFDI, which includes other components
-like [arthistoricum.net](https://www.arthistoricum.net/):
+I've observed two kinds of relations on NFDI Wikidata pages so far: partnerships
+(P2652) and affiliations (P1416). Partnership relations appear to be
+unqualified, and affiliations are annotated with object roles. Here's a query
+over partnerships, which I've loosened from NFDI consortia to any parts of NFDI,
+which includes other components like
+[arthistoricum.net](https://www.arthistoricum.net/):
 
 ```sparql
 SELECT  ?consortium ?consortiumLabel ?consortiumROR ?partner ?partnerLabel ?partnerROR
@@ -53,16 +56,17 @@ ORDER BY ?consortiumLabel ?partnerLabel
 
 <iframe style="width: 80vw; height: 50vh; border: none;" src="https://query.wikidata.org/embed.html#SELECT%20%0A%20%20%3Fconsortium%20%3FconsortiumLabel%20%3Fpartner%20%3FpartnerLabel%0AWHERE%0A%7B%0A%20%20%3Fconsortium%20wdt%3AP361%2B%20wd%3AQ61658497%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20wdt%3AP2652%20%3Fpartner%20.%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cmul%2Cen%22.%20%7D%0A%7D%0AORDER%20BY%20%3FconsortiumLabel" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-popups" ></iframe>
 
-The next query gets affiliations from NFDI parts to any external entities (and their ROR IDs, when available):
+The next query gets affiliations from NFDI parts to any external entities (and
+their ROR IDs, when available):
 
 ```sparql
 SELECT ?consortium ?consortiumLabel ?consortiumROR ?affiliate ?affiliateLabel ?affiliateROR ?affiliateRole ?affiliateRoleLabel
 WHERE {
   ?consortium wdt:P361+ wd:Q61658497 ;
               p:P1416 ?affiliateStatement .
-              
+
   ?affiliateStatement ps:P1416 ?affiliate .
-  
+
   OPTIONAL { ?affiliateStatement pq:P3831 ?affiliateRole . }
   OPTIONAL { ?consortium wdt:P6782 ?consortiumROR . }
   OPTIONAL { ?affiliate wdt:P6782 ?affiliateROR . }
@@ -73,16 +77,51 @@ ORDER BY ?consortiumLabel ?affiliateLabel ?affiliateRoleLabel
 
 <iframe style="width: 80vw; height: 50vh; border: none;" src="https://query.wikidata.org/embed.html#SELECT%20%0A%20%20%3Fconsortium%20%3FconsortiumLabel%20%3FconsortiumROR%20%3Faffiliate%20%3FaffiliateLabel%20%3FaffiliateROR%20%3FaffiliateRole%20%3FaffiliateRoleLabel%0AWHERE%0A%7B%0A%20%20%3Fconsortium%20wdt%3AP361%2B%20wd%3AQ61658497%20%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20p%3AP1416%20%3FaffiliateStatement%20.%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%0A%20%20%3FaffiliateStatement%20ps%3AP1416%20%3Faffiliate%20.%0A%20%20%0A%20%20OPTIONAL%20%7B%20%3FaffiliateStatement%20pq%3AP3831%20%3FaffiliateRole%20.%20%7D%0A%20%20OPTIONAL%20%7B%20%3Fconsortium%20wdt%3AP6782%20%3FconsortiumROR%20.%20%7D%0A%20%20OPTIONAL%20%7B%20%3Faffiliate%20wdt%3AP6782%20%3FaffiliateROR%20.%20%7D%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cmul%2Cen%22.%20%7D%0A%7D%0AORDER%20BY%20%3FconsortiumLabel%20%3FaffiliateLabel%20%3FaffiliateRoleLabel%0A" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-popups" ></iframe>
 
-I wrote a follow-up SPARQL query over affiliations in Wikidata to understand what kinds of values
-are used as the object role. This is helpful as a starting point to build a data model with a
-controlled vocabulary:
+I wrote a follow-up SPARQL query over affiliations in Wikidata to understand
+what kinds of values are used as the object role. This is helpful as a starting
+point to build a data model with a controlled vocabulary:
 
 ```sparql
 SELECT ?role ?roleLabel (COUNT(?role) as ?count)
 WHERE {
-  ?x p:P1416/pq:P3831 ?role .  
+  ?x p:P1416/pq:P3831 ?role .
   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],mul,en". }
 }
 GROUP BY ?role ?roleLabel
+ORDER BY DESC(?count)
+```
+
+### ROR Alignment
+
+This query is going to get of the predicates that pop up between Wikidta
+entities that have ROR IDs. Surprisingly, this takes 30 seconds to complete, and
+usually times out.
+
+```sparql
+SELECT DISTINCT ?predicate (COUNT(?predicate) as ?count)
+{
+  ?subjectROR ^wdt:P6782 ?subject .
+  ?subject ?predicate ?object .
+  ?object wdt:P6782 ?objectROR .
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],mul,en". }
+}
+GROUP BY ?predicate
+ORDER BY DESC(?count)
+```
+
+Ideally, this query would also get the label out, which uses
+`wikibase:directClaim` to link from the `wdt` back to `wd` namespace
+
+```sparql
+SELECT DISTINCT ?p ?pLabel (COUNT(?p) as ?count)
+{
+  ?subjectROR ^wdt:P6782 ?subject .
+  ?subject ?predicate ?object .
+  ?object wdt:P6782 ?objectROR .
+  # this madness links backwards through the many flavors of properties
+  ?p wikibase:directClaim ?predicate .
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],mul,en". }
+}
+GROUP BY ?p ?pLabel
 ORDER BY DESC(?count)
 ```
